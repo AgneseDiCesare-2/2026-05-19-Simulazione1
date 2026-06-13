@@ -1,8 +1,12 @@
-﻿import networkx as nx
+﻿import copy
+
+import networkx as nx
 from database.DAO import DAO
 
 class Model:
     def __init__(self):
+        self._max = None
+        self._bestSolution = None
         self._grafo=nx.DiGraph()
         self._idMap={}
 
@@ -61,3 +65,37 @@ class Model:
     def archi_maggiori(self):
         archi_ordinati = sorted(self._grafo.edges.data("weight"), key=lambda x: x[2], reverse=True)
         return archi_ordinati[:5]
+
+    def getArtists(self, genreId):
+        return DAO.getNodi(genreId)
+
+    def handleCammino(self, artist):
+        self._bestSolution=[]
+        self._max=0
+
+        self._ricorsione([artist])
+
+        return self._bestSolution, self._max
+
+    def _ricorsione(self, parziale: list):
+        #condizione terminale --> non c'è
+        #verifica best condizione
+        if len(parziale)>self._max:
+            self._max=len(parziale)
+            self._bestSolution=copy.deepcopy(parziale)
+
+        for n in self._grafo.neighbors(parziale[-1]):
+            if n not in parziale:
+                if len(parziale)==1:
+                    parziale.append(n)
+                    self._ricorsione(parziale)
+                    parziale.pop()
+
+                #controllo peso archi strett. crescente
+                else:
+                    if self._grafo[parziale[-1]][n]["weight"]>self._grafo[parziale[-2]][parziale[-1]]["weight"]:
+                        parziale.append(n)
+                        self._ricorsione(parziale)
+                        parziale.pop()
+
+
